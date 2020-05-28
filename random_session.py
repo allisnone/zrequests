@@ -17,7 +17,7 @@ import csv
 import string,sys,time
 import requests
 from requests_toolbelt.adapters import source
-from requests_ntlm import HttpNtlmAuth
+from requests_ntlm2 import HttpNtlmAuth
 import random
 
 def get_random_ip_or_user(start,end,prefix='172.16.90.',type='ip'):
@@ -55,6 +55,72 @@ def initial_requests_session(ip,header=None,proxy=None,user='skyguardgx\\se1',pa
     print(r.text)
     return s
 
+
+ip = get_random_ip_or_user(start=2,end=254)
+user = get_random_ip_or_user(start=1,end=2,prefix='se',type='user')
+print('ip=',ip)
+print('user=',user)
+new_adapter = source.SourceAddressAdapter(ip)#,max_retries=retries)
+
+import requests
+from requests_ntlm2 import (
+    HttpNtlmAuth,
+    HttpNtlmAdapter,
+    NtlmCompatibility
+)
+
+username = 'skyguardgx\\' + user
+password = 'Firewall1'
+proxy_ip = '172.17.33.23'
+proxy_port = '8080'
+
+proxies = {
+    'http': 'http://{0}:{1}'.format(proxy_ip, proxy_port),
+    'https': 'http://{0}:{1}'.format(proxy_ip, proxy_port)
+}
+
+ntlm_compatibility = NtlmCompatibility.NTLMv2_DEFAULT
+
+session = requests.Session()
+
+session.mount('http://', new_adapter)
+session.mount('https://', new_adapter)
+
+session.mount(
+    'https://',
+    HttpNtlmAdapter(
+        username,
+        password,
+        #ip=ip,
+        ntlm_compatibility=ntlm_compatibility
+    )
+)
+session.mount(
+    'http://',
+    HttpNtlmAdapter(
+        username,
+        password,
+        #ip = ip,
+        ntlm_compatibility=ntlm_compatibility
+    )
+)
+
+
+    
+session.auth = HttpNtlmAuth(
+    username,
+    password,
+    ntlm_compatibility=ntlm_compatibility
+)
+session.proxies = proxies
+
+response = session.get('https://www.baidu.com')
+print(response)
+print(response.text)
+print('-----------------------------------------')
+
+
+"""
 print(get_random_ip_or_user(start=2,end=254))
 print(get_random_ips_users(start=1,end=30,num=35))   
 
@@ -63,3 +129,4 @@ user = get_random_ip_or_user(start=1,end=2,prefix='ts',type='user')
 ntlm_user='skyguardgx\\' + user
 print(ntlm_user)
 initial_requests_session(ip='172.16.0.105',user=ntlm_user)
+"""
