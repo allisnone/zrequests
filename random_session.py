@@ -1,7 +1,9 @@
 #!/usr/bin/env python
 # -*- coding:utf-8 -*-
 #allisnone 20200403
-
+#https://github.com/urllib3/urllib3/issues/1434
+#https://github.com/dopstar/requests-ntlm2
+#https://github.com/requests/requests-ntlm
 
 #base on python3
 #if you request https website, you need to add ASWG CA to following file:
@@ -37,7 +39,8 @@ def get_random_ips_users(start,end,num,prefix='172.16.90.',type='ip'):
 
 def initial_requests_session(ip,header=None,proxy=None,user='skyguardgx\\se1',password = 'Firewall1',verify=False,auth=None,retries=1):
     s = requests.Session()
-    new_adapter = source.SourceAddressAdapter(ip,max_retries=retries)
+    #new_adapter = source.SourceAddressAdapter(ip,max_retries=retries)
+    new_adapter = source.SourceAddressAdapter(ip)#,max_retries=retries)
     s.mount('http://', new_adapter)
     s.mount('https://', new_adapter)
     #s.auth = ('user', 'pass')  
@@ -45,8 +48,8 @@ def initial_requests_session(ip,header=None,proxy=None,user='skyguardgx\\se1',pa
     s.headers = {'User-Agent':'zrequest-v1.1'}
     #s.headers.update({'via': 'aswg33-1'})  
     s.proxies = {'http': 'http://172.17.33.23:8080', 'https': 'http://172.17.33.23:8080'}
-    s.verify = False
-    #s.verify='/path-to/charles-ssl-proxying-certificate.pem'
+    #s.verify = False
+    s.verify='rootCA.cer'
     r = s.get('https://www.baidu.com')
     r =s.get("http://ntlm_protected_site.com")
     print(r.text)
