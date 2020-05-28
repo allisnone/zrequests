@@ -86,6 +86,7 @@ session = requests.Session()
 session.mount('http://', new_adapter)
 session.mount('https://', new_adapter)
 
+
 session.mount(
     'https://',
     HttpNtlmAdapter(
