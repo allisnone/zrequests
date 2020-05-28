@@ -7,6 +7,7 @@
 #if you request https website, you need to add ASWG CA to following file:
 #/root/.pyenv/versions/3.5.5/lib/python3.5/site-packages/certifi/cacert.pem
 #ulimit –n 2000
+#pip install requests_ntlm
 import argparse
 import re
 import os
@@ -34,24 +35,28 @@ def get_random_ips_users(start,end,num,prefix='172.16.90.',type='ip'):
     choices = random.sample(sequences,num)
     return choices
 
-def initial_requests_session(ip,header,proxy,proxy_pass='se2:Firewall1',verify=False,auth=None):
+def initial_requests_session(ip,header=None,proxy=None,user='skyguardgx\\se1',password = 'Firewall1',verify=False,auth=None,retries=1):
     s = requests.Session()
-    new_adapter = source.SourceAddressAdapter(ip)
+    new_adapter = source.SourceAddressAdapter(ip,max_retries=retries)
     s.mount('http://', new_adapter)
     s.mount('https://', new_adapter)
     #s.auth = ('user', 'pass')  
-    #s.auth = HttpNtlmAuth('domain\\username','password')
+    s.auth = HttpNtlmAuth(user,password)
     s.headers = {'User-Agent':'zrequest-v1.1'}
     #s.headers.update({'via': 'aswg33-1'})  
-    #s.proxies = {'http': 'http://localhost:8888', 'https': 'http://localhost:8888'}
+    s.proxies = {'http': 'http://172.17.33.23:8080', 'https': 'http://172.17.33.23:8080'}
     s.verify = False
     #s.verify='/path-to/charles-ssl-proxying-certificate.pem'
     r = s.get('https://www.baidu.com')
-    r =s.get("http://ntlm_protected_site.com",auth=HttpNtlmAuth('domain\\username','password'))
+    r =s.get("http://ntlm_protected_site.com")
     print(r.text)
     return s
 
-print(get_random_ip_or_user(start=1,end=30))
+print(get_random_ip_or_user(start=2,end=254))
 print(get_random_ips_users(start=1,end=30,num=35))   
 
-initial_requests_session(ip='192.168.3.3')
+ip = get_random_ip_or_user(start=2,end=254)
+user = get_random_ip_or_user(start=1,end=2,prefix='ts',type='user')
+ntlm_user='skyguardgx\\' + user
+print(ntlm_user)
+initial_requests_session(ip='172.16.0.105',user=ntlm_user)
