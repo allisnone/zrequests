@@ -17,10 +17,10 @@ import csv
 import string,sys,time
 import requests
 from requests_toolbelt.adapters import source
-from requests_ntlm import HttpNtlmAuth
+#from requests_ntlm import HttpNtlmAuth
 import random
 import subprocess
-import zthreads
+#import zthreads
 
 def get_random_ip_or_user(start,end,prefix='172.16.90.',type='ip'):
     if type=='ip' and max(start,end)>255:
@@ -61,10 +61,33 @@ def system_curl_request(url,user,eth,proxy='172.17.33.23:8080',cert='rootCA.cer'
         cert,eth,user,proxy,url)
     try:
         os_p = os.system(curl_cmd)
+        print('curl_cmd=',curl_cmd)
     except Exception as e:
         print('curl_request_timeout: {0}, error: {1}'.format(curl_cmd,e))
     return
 
+def get_urls_from_file(from_file='url16000.txt',url_index=-1,spliter=',',pre_www='www.'):
+    """
+    用于url分类测试，测试文件中存放大量的url地址
+    :param from_file: str 
+    :return: list， URL_list（Generator）
+    """
+    txtfile = open(from_file, 'r',encoding='utf-8')
+    url_list = txtfile.readlines()
+    for i in range(0,len(url_list)):
+        url_list[i] = url_list[i].replace('\n','')
+        #print(url_list[i])
+        if url_index>=0:
+            url_var = url_list[i].split(spliter)[url_index].replace(' ','')
+            if pre_www not in url_var:
+                url_var = pre_www + url_var
+            url_list[i] = url_var
+        protocol_header = url_list[i][:9].lower()
+        if "http://" in protocol_header or "https://" in protocol_header or "ftp://" in protocol_header:
+            pass 
+        else: #无协议头部，默认加http协议
+            url_list[i] = "https://" + url_list[i]
+    return url_list 
 
 def callback():
     return
@@ -74,23 +97,43 @@ def callback():
 #curl --cacert rootCA.cer  --interface eth0:8 --proxy-user ts1:Firewall1 --proxy-ntlm  -x  172.17.33.23:8080 https://www.baidu.com
 #print(get_random_ip_or_user(start=2,end=254))
 #print(get_random_ips_users(start=1,end=30,num=35))   
-url = 'https://www.baidu.com'
 
-from zthreads.threadpools.threadpools import Threadpools
+urls = get_urls_from_file(from_file='urls.txt',url_index=0,spliter=',',pre_www='www.')
+print('urls=',urls)
+#url = 'https://www.baidu.com'
+print(len(urls))
+
+#from zthreads.threadpools.threadpools import Threadpools
 #thread_pool = Threadpools(5)
-for i in range(1,101):
+i = 1
+j = 1
+for url in urls:
+    
+    if len(url)>30:
+        continue
+    print('url=',url)
+    j = i
+    if i > 100:
+        i = i//100
+    
+    if j > 253:
+        j = j//253
+        
+#for i in range(1,101):
     #ip = get_random_ip_or_user(start=2,end=254)
-    ip = '172.16.0.' + str(i)
+    ip = '172.18.1.' + str(i)
     #user = get_random_ip_or_user(start=1,end=99,prefix='df64user',type='user')
     user = 'df64user'+str(i)
     #eth = get_random_ip_or_user(start=2,end=253,prefix='eth0:',type='user')
-    eth = 'eth0:'+str(i)
+    eth = 'eth0:'+str(j)
     print('ip_i{0}={1}'.format(i,ip))
     print('eth=',eth)
     print('user=',user)
     #thread_pool.put(system_curl_request, (url,user,eth,), callback)
     #popen_curl_request(url,user,eth,proxy='172.17.33.23:8080',cert='rootCA.cer')
-    system_curl_request(url,user,eth,proxy='172.17.33.23:8080',cert='rootCA.cer')
+    system_curl_request(url,user,eth,proxy='172.17.100.3:8080',cert='rootCA.cer')
+    i = i + 1
+    #j = j + 1
     
 time.sleep(3)
 print("-" * 50)    
