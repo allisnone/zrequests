@@ -20,6 +20,7 @@ from requests_toolbelt.adapters import source
 from requests_ntlm import HttpNtlmAuth
 import random
 import subprocess
+import zthreads
 
 def get_random_ip_or_user(start,end,prefix='172.16.90.',type='ip'):
     if type=='ip' and max(start,end)>255:
@@ -38,49 +39,48 @@ def get_random_ips_users(start,end,num,prefix='172.16.90.',type='ip'):
     choices = random.sample(sequences,num)
     return choices
 
-def initial_requests_session(ip,header=None,proxy=None,user='skyguardgx\\se1',password = 'Firewall1',verify=False,auth=None,retries=1):
-    s = requests.Session()
-    #new_adapter = source.SourceAddressAdapter(ip,max_retries=retries)
-    new_adapter = source.SourceAddressAdapter(ip)#,max_retries=retries)
-    s.mount('http://', new_adapter)
-    s.mount('https://', new_adapter)
-    #s.auth = ('user', 'pass')  
-    #s.auth = HttpNtlmAuth(user,password)
-    s.headers = {'User-Agent':'zrequest-v1.1'}
-    #s.headers.update({'via': 'aswg33-1'})  
-    s.proxies = {'http': 'http://172.17.33.23:8080', 'https': 'http://172.17.33.23:8080'}
-    #s.verify = False
-    s.verify='rootCA.cer'
-    r = s.get('https://www.baidu.com')
-    r =s.get("http://ntlm_protected_site.com")
-    print(r.text)
-    return s
-
 
 def curl_request(url,user,eth,proxy='172.17.33.23:8080',cert='rootCA.cer'):
     curl_cmd = 'curl --cacert {0} --interface {1} --proxy-user {2}:Firewall1 --proxy-ntlm  -x  {3} {4}'.format(
         cert,eth,user,proxy,url)
-    
-    subp = subprocess.Popen(curl_cmd,shell=True,stdout=subprocess.PIPE,stderr=subprocess.PIPE)#,encoding="utf-8")
-    subp.wait(2)
+    subp = subprocess.Popen(curl_cmd,shell=True,stdout=subprocess.PIPE,stderr=subprocess.PIPE,close_fds=True)#,encoding="utf-8")
+    try:
+        subp.wait(2)  #等待超时
+    except Exception as e:
+        print('curl_request_timeout, error: ',e)
+        return
     if subp.poll() == 0:
         print(subp.communicate()[1])
     else:
-        print("失败")
+        print("curl_request-失败: ",curl_cmd)
+    return
+
+
+def callback():
+    return
+
 #curl
 #curl -k  --interface eth0:2 --proxy-user ts1:Firewall1 --proxy-ntlm  -x  172.17.33.23:8080 https://www.baidu.com
 #curl --cacert rootCA.cer  --interface eth0:8 --proxy-user ts1:Firewall1 --proxy-ntlm  -x  172.17.33.23:8080 https://www.baidu.com
-print(get_random_ip_or_user(start=2,end=254))
-print(get_random_ips_users(start=1,end=30,num=35))   
-
-ip = get_random_ip_or_user(start=2,end=254)
-user = get_random_ip_or_user(start=1,end=2,prefix='ts',type='user')
-eth = get_random_ip_or_user(start=2,end=254,prefix='eth0:',type='user')
-ntlm_user='skyguardgx\\' + user
-print(ntlm_user)
-print('ip=',ip)
-print('eth=',eth)
-print('user=',user)
+#print(get_random_ip_or_user(start=2,end=254))
+#print(get_random_ips_users(start=1,end=30,num=35))   
 url = 'https://www.baidu.com'
-curl_request(url,user,eth,proxy='172.17.33.23:8080',cert='rootCA.cer')
+
+from zthreads.threadpools.threadpools import Threadpools
+thread_pool = Threadpools(50)
+for i in range(100):
+    ip = get_random_ip_or_user(start=2,end=254)
+    user = get_random_ip_or_user(start=1,end=99,prefix='df64user',type='user')
+    eth = get_random_ip_or_user(start=2,end=254,prefix='eth0:',type='user')
+    print('ip_i{0}={1}'.format(i,ip))
+    print('eth=',eth)
+    print('user=',user)
+    #thread_pool.put(curl_request, (url,user,eth,), callback)
+    
+    curl_request(url,user,eth,proxy='172.17.33.23:8080',cert='rootCA.cer')
+
+time.sleep(3)
+print("-" * 50)    
+
+thread_pool.close()  
 #initial_requests_session(ip=ip,user=ntlm_user)
