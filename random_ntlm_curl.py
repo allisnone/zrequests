@@ -57,12 +57,12 @@ def popen_curl_request(url,user,eth,proxy='172.17.33.23:8080',cert='rootCA.cer')
     return
 
 def system_curl_request(url,user,eth,proxy='172.17.33.23:8080',cert='rootCA.cer'):
-    curl_cmd = 'curl --cacert {0} --interface {1} --proxy-user {2}:Firewall1 --proxy-ntlm  -x  {3} {4}'.format(
+    curl_cmd = 'curl -I --cacert {0} --interface {1} --proxy-user {2}:Firewall1 --proxy-ntlm  -x  {3} {4}'.format(
         cert,eth,user,proxy,url)
     try:
         os_p = os.system(curl_cmd)
     except Exception as e:
-        print('curl_request_timeout, error: ',e)
+        print('curl_request_timeout: {0}, error: {1}'.format(curl_cmd,e))
     return
 
 
@@ -77,20 +77,23 @@ def callback():
 url = 'https://www.baidu.com'
 
 from zthreads.threadpools.threadpools import Threadpools
-thread_pool = Threadpools(5)
-for i in range(100):
-    ip = get_random_ip_or_user(start=2,end=254)
-    user = get_random_ip_or_user(start=1,end=99,prefix='df64user',type='user')
-    eth = get_random_ip_or_user(start=2,end=254,prefix='eth0:',type='user')
+#thread_pool = Threadpools(5)
+for i in range(1,101):
+    #ip = get_random_ip_or_user(start=2,end=254)
+    ip = '172.16.0.' + str(i)
+    #user = get_random_ip_or_user(start=1,end=99,prefix='df64user',type='user')
+    user = 'df64user'+str(i)
+    #eth = get_random_ip_or_user(start=2,end=253,prefix='eth0:',type='user')
+    eth = 'eth0:'+str(i)
     print('ip_i{0}={1}'.format(i,ip))
     print('eth=',eth)
     print('user=',user)
     #thread_pool.put(system_curl_request, (url,user,eth,), callback)
-    
     #popen_curl_request(url,user,eth,proxy='172.17.33.23:8080',cert='rootCA.cer')
     system_curl_request(url,user,eth,proxy='172.17.33.23:8080',cert='rootCA.cer')
+    
 time.sleep(3)
 print("-" * 50)    
 
-thread_pool.close()  
+#thread_pool.close()  
 #initial_requests_session(ip=ip,user=ntlm_user)
