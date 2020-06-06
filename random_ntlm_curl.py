@@ -42,7 +42,7 @@ def get_random_ips_users(start,end,num,prefix='172.16.90.',type='ip'):
 
 
 def popen_curl_request(url,user,eth,proxy='172.17.33.23:8080',cert='rootCA.cer'):
-    curl_cmd = 'curl --cacert {0} --interface {1} --proxy-user {2}:Firewall1 --proxy-ntlm  -x  {3} {4}'.format(
+    curl_cmd = 'curl --cacert {0} --interface {1} --proxy-user {2}:Firewall1 --proxy-ntlm  -x  {3} {4} &'.format(
         cert,eth,user,proxy,url)
     subp = subprocess.Popen(curl_cmd,shell=True,stdout=subprocess.PIPE,stderr=subprocess.PIPE,close_fds=True)#,encoding="utf-8")
     try:
@@ -57,7 +57,7 @@ def popen_curl_request(url,user,eth,proxy='172.17.33.23:8080',cert='rootCA.cer')
     return
 
 def system_curl_request(url,user,eth,proxy='172.17.33.23:8080',cert='rootCA.cer'):
-    curl_cmd = 'curl -I --cacert {0} --interface {1} --proxy-user {2}:Firewall1 --proxy-ntlm  -x  {3} {4}'.format(
+    curl_cmd = 'curl -I --cacert {0} --interface {1} --proxy-user {2}:Firewall1 --proxy-ntlm  -x  {3} {4} &'.format(
         cert,eth,user,proxy,url)
     try:
         os_p = os.system(curl_cmd)
@@ -76,18 +76,40 @@ def get_urls_from_file(from_file='url16000.txt',url_index=-1,spliter=',',pre_www
     url_list = txtfile.readlines()
     for i in range(0,len(url_list)):
         url_list[i] = url_list[i].replace('\n','')
-        #print(url_list[i])
+       # print(url_list[i])
         if url_index>=0:
             url_var = url_list[i].split(spliter)[url_index].replace(' ','')
-            if pre_www not in url_var:
+            #print('url_var=',url_var)
+            protocol_header = url_var[:9].lower()
+            if pre_www not in url_var and not ("http://" in protocol_header or "https://" in protocol_header or "ftp://" in protocol_header):
                 url_var = pre_www + url_var
             url_list[i] = url_var
         protocol_header = url_list[i][:9].lower()
+        #print('protocol_header=',protocol_header)
         if "http://" in protocol_header or "https://" in protocol_header or "ftp://" in protocol_header:
             pass 
         else: #无协议头部，默认加http协议
             url_list[i] = "https://" + url_list[i]
     return url_list 
+
+
+def get_eth_user_index(sequence=0,user_start=30,user_end=99,eth_num=254):
+    """
+    inet 172.18.1.1/16 brd 172.18.255.255 scope global secondary eth0:0
+    inet 172.18.1.254/16 brd 172.18.255.255 scope global secondary eth0:253
+    sequence: start with 0
+    eth_num: eth sequence start with 0
+    """
+    user_num = user_end - user_start + 1
+    #print('user_num=',user_num)
+    user_index = sequence
+    if sequence>user_num: #循环，复用，取余
+        user_index = sequence % user_num
+    user_index = user_index + user_start
+    eth_index = sequence
+    if eth_index>eth_num: #循环，复用，取余
+        eth_index = eth_index % eth_num
+    return user_index,eth_index
 
 def callback():
     return
@@ -97,43 +119,43 @@ def callback():
 #curl --cacert rootCA.cer  --interface eth0:8 --proxy-user ts1:Firewall1 --proxy-ntlm  -x  172.17.33.23:8080 https://www.baidu.com
 #print(get_random_ip_or_user(start=2,end=254))
 #print(get_random_ips_users(start=1,end=30,num=35))   
+#i = 436
+#user_index,eth_index = get_eth_user_index(sequence=i,user_start=30,user_end=99,eth_num=254)
+#print(user_index,eth_index)
 
+#"""
 urls = get_urls_from_file(from_file='urls.txt',url_index=0,spliter=',',pre_www='www.')
-print('urls=',urls)
+#print('urls=',urls)
 #url = 'https://www.baidu.com'
-print(len(urls))
+print('urls_len=',len(urls))
 
 #from zthreads.threadpools.threadpools import Threadpools
 #thread_pool = Threadpools(5)
-i = 1
-j = 1
+i = 0
+user_start=30
+user_end=99
+eth_num=254
+ip_prefix = '172.18.1.'
 for url in urls:
+    user_index,eth_index = get_eth_user_index(sequence=i,user_start=30,user_end=99,eth_num=254)
+    print('i={0}: user_index={1}, eth_index={2}'.format(i,user_index,eth_index))
     
-    if len(url)>30:
-        continue
-    print('url=',url)
-    j = i
-    if i > 100:
-        i = i//100
-    
-    if j > 253:
-        j = j//253
-        
-#for i in range(1,101):
     #ip = get_random_ip_or_user(start=2,end=254)
-    ip = '172.18.1.' + str(i)
+    ip = '172.18.1.' + str(eth_index + 1)
     #user = get_random_ip_or_user(start=1,end=99,prefix='df64user',type='user')
-    user = 'df64user'+str(i)
+    user = 'userg'+str(user_index)
     #eth = get_random_ip_or_user(start=2,end=253,prefix='eth0:',type='user')
-    eth = 'eth0:'+str(j)
-    print('ip_i{0}={1}'.format(i,ip))
+    eth = 'eth0:'+str(eth_index)
+    print('ip_{0}={1}'.format(i,ip))
     print('eth=',eth)
     print('user=',user)
     #thread_pool.put(system_curl_request, (url,user,eth,), callback)
     #popen_curl_request(url,user,eth,proxy='172.17.33.23:8080',cert='rootCA.cer')
-    system_curl_request(url,user,eth,proxy='172.17.100.3:8080',cert='rootCA.cer')
+    system_curl_request(url,user,eth,proxy='172.17.33.23:8080',cert='rootCA.cer')
     i = i + 1
+    print("-" * 50)  
     #j = j + 1
+#"""
     
 time.sleep(3)
 print("-" * 50)    
