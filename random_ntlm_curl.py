@@ -93,22 +93,19 @@ def get_urls_from_file(from_file='url16000.txt',url_index=-1,spliter=',',pre_www
     return url_list 
 
 
-def get_eth_user_index(sequence=0,user_start=30,user_end=99,eth_num=254):
+def get_eth_user_index(sequence=0,user_start=30,user_num=10,eth_start=0,eth_num=254):
     """
     inet 172.18.1.1/16 brd 172.18.255.255 scope global secondary eth0:0
     inet 172.18.1.254/16 brd 172.18.255.255 scope global secondary eth0:253
     sequence: start with 0
     eth_num: eth sequence start with 0
     """
-    user_num = user_end - user_start + 1
-    #print('user_num=',user_num)
     user_index = sequence
     if sequence>user_num: #循环，复用，取余
-        user_index = sequence % user_num
-    user_index = user_index + user_start
+        user_index = sequence % user_num + user_start
     eth_index = sequence
     if eth_index>eth_num: #循环，复用，取余
-        eth_index = eth_index % eth_num
+        eth_index = eth_index % eth_num + eth_start
     return user_index,eth_index
 
 def callback():
@@ -133,11 +130,12 @@ print('urls_len=',len(urls))
 #thread_pool = Threadpools(5)
 i = 0
 user_start=30
-user_end=99
+user_num=10
+sub_eth_start = 0
 eth_num=254
 ip_prefix = '172.18.1.'
 for url in urls:
-    user_index,eth_index = get_eth_user_index(sequence=i,user_start=30,user_end=99,eth_num=254)
+    user_index,eth_index = get_eth_user_index(sequence=i,user_start=30,user_num=user_num,eth_start=sub_eth_start,eth_num=eth_num)
     print('i={0}: user_index={1}, eth_index={2}'.format(i,user_index,eth_index))
     
     #ip = get_random_ip_or_user(start=2,end=254)
