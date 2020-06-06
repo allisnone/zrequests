@@ -63,7 +63,7 @@ def system_curl_request(url,user,eth,proxy='172.17.33.23:8080',cert='rootCA.cer'
         os_p = os.system(curl_cmd)
         print('curl_cmd=',curl_cmd)
     except Exception as e:
-        print('curl_request_timeout: {0}, error: {1}'.format(curl_cmd,e))
+        print('curl_request_timeout: {0}, error: {1}, url={2}, user={3}'.format(curl_cmd,e,url,user))
     return
 
 def get_urls_from_file(from_file='url16000.txt',url_index=-1,spliter=',',pre_www='www.'):
@@ -137,6 +137,7 @@ sub_eth_start = 0
 eth_num=254
 ip_prefix = '172.18.1.'
 for url in urls:
+    url = 'https://www.baidu.com'
     user_index,eth_index = get_eth_user_index(sequence=i,user_start=30,user_num=user_num,eth_start=sub_eth_start,eth_num=eth_num)
     print('i={0}: user_index={1}, eth_index={2}'.format(i,user_index,eth_index))
     
