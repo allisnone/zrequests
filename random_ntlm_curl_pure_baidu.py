@@ -100,12 +100,16 @@ def get_eth_user_index(sequence=0,user_start=30,user_num=10,eth_start=0,eth_num=
     sequence: start with 0
     eth_num: eth sequence start with 0
     """
+    user_index = sequence % user_num + user_start
+    eth_index = sequence % eth_num + eth_start
+    """
     user_index = sequence
     if sequence>user_num: #循环，复用，取余
         user_index = sequence % user_num + user_start
     eth_index = sequence
     if eth_index>eth_num: #循环，复用，取余
         eth_index = eth_index % eth_num + eth_start
+    """
     return user_index,eth_index
 
 def callback():
@@ -121,24 +125,25 @@ def callback():
 #print(user_index,eth_index)
 
 #"""
+  
 urls = get_urls_from_file(from_file='hwurls_top10w.txt',url_index=0,spliter=',',pre_www='www.')
 #print('urls=',urls)
 #url = 'https://www.baidu.com'
 print('urls_len=',len(urls))
 
-urls = urls[:100]
-
+urls = urls[:300]
+print('urls_len=',len(urls))
 #from zthreads.threadpools.threadpools import Threadpools
 #thread_pool = Threadpools(5)
 i = 0
-user_start=30
-user_num=10
+user_start=300
+user_num=253
 sub_eth_start = 0
-eth_num=254
+eth_num=253
 ip_prefix = '172.18.1.'
 for url in urls:
     url = 'https://www.baidu.com'
-    user_index,eth_index = get_eth_user_index(sequence=i,user_start=30,user_num=user_num,eth_start=sub_eth_start,eth_num=eth_num)
+    user_index,eth_index = get_eth_user_index(sequence=i,user_start=user_start,user_num=user_num,eth_start=sub_eth_start,eth_num=eth_num)
     print('i={0}: user_index={1}, eth_index={2}'.format(i,user_index,eth_index))
     
     #ip = get_random_ip_or_user(start=2,end=254)
