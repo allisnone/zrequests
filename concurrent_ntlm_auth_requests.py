@@ -56,22 +56,31 @@ def popen_curl_request(url,user,eth,proxy='172.17.33.23:8080',cert='rootCA.cer')
         print("curl_request-失败: ",curl_cmd)
     return
 
-def system_curl_request(url,user,eth,proxy='172.17.33.23:8080',cert='rootCA.cer',is_http=False):
+def system_curl_request(url,user,eth,proxy='172.17.33.23:8080',cert='rootCA.cer',is_http=False,debug=False):
     """
     -I: header request
     -k: skip ssl
     --no-keepalive, keepalive=close
     """
     curl_cmd = ''
+    debug = False
     if is_http:
-        curl_cmd = 'curl  --no-keepalive  --interface {0} --proxy-user {1}:Firewall1 --proxy-ntlm  -x  {2} {3}  > /dev/null 2>&1 &'.format(
-        eth,user,proxy,url)
+        basic_cmd = 'curl  -I --no-keepalive  --interface {0} --proxy-user {1}:Firewall1 --proxy-ntlm  -x  {2} {3} &'
+        if debug:
+            pass
+        else:
+            basic_cmd = basic_cmd[:-1] + ' > /dev/ull 2>&1 &'
+        curl_cmd = basic_cmd.format(eth,user,proxy,url)
     else:
-        curl_cmd = 'curl  -I --cacert {0} --interface {1} --proxy-user {2}:Firewall1 --proxy-ntlm  -x  {3} {4} > /dev/null 2>&1 &'.format(
-        cert,eth,user,proxy,url)
+        basic_cmd = 'curl  -I --cacert {0} --interface {1} --proxy-user {2}:Firewall1 --proxy-ntlm  -x  {3} {4} &'
+        if debug:
+            pass
+        else:
+            basic_cmd = basic_cmd[:-1] + ' > /dev/ull 2>&1 &'
+        curl_cmd = basic_cmd.format(cert,eth,user,proxy,url)
     try:
         os_p = os.system(curl_cmd)
-        #print('curl_cmd=',curl_cmd)
+        print('curl_cmd=',curl_cmd)
     except Exception as e:
         print('curl_request_timeout: {0}, error: {1}, url={2}, user={3}'.format(curl_cmd,e,url,user))
     return
@@ -127,12 +136,15 @@ def callback():
 
 
 def urls_resquests(urls, proxy='172.17.33.23:8080',user_start=300,user_num=253,sub_eth_start = 0, eth_num=253, 
-    ip_prefix = '172.18.1.', cert='rootCA.cer',is_same_url=False, is_http=False):
+    ip_prefix = '172.18.1.', cert='rootCA.cer',is_same_url=False, is_http=False,debug=False):
     """
     one ip/eth<--> one user
     """
     i = 0
-    for url in urls:
+    #count = max(len(urls),user_num,eth_num)
+    #for url in urls:
+    for i in range(max(user_num,eth_num)):
+        url = ''
         if is_same_url:
             if is_http:
                 url = 'http://172.16.0.1'   #use the same url for request test
@@ -142,7 +154,9 @@ def urls_resquests(urls, proxy='172.17.33.23:8080',user_start=300,user_num=253,s
         eth_index = i % eth_num + sub_eth_start
         
         #ip = get_random_ip_or_user(start=2,end=254)
-        ip = ip_prefix + str(eth_index + 1)
+        
+        #ip = ip_prefix + str(eth_index + 1)
+        
         #user = get_random_ip_or_user(start=1,end=99,prefix='df64user',type='user')
         user = 'userg'+str(user_index)
         #eth = get_random_ip_or_user(start=2,end=253,prefix='eth0:',type='user')
@@ -157,12 +171,11 @@ def urls_resquests(urls, proxy='172.17.33.23:8080',user_start=300,user_num=253,s
         #thread_pool.put(system_curl_request, (url,user,eth,), callback)
         #popen_curl_request(url,user,eth,proxy='172.17.33.23:8080',cert='rootCA.cer')
         #system_curl_request(url,user,eth,proxy='172.17.33.23:8080',cert='rootCA.cer')
-        system_curl_request(url,user,eth,proxy=proxy,cert=cert,is_http=is_http)
-        i = i + 1
+        system_curl_request(url,user,eth,proxy=proxy,cert=cert,is_http=is_http,debug=debug)
+        #i = i + 1
     return
         
-
-
+        
 #"""
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='该Python3脚本用于ASWG做并发认证测试。\n 1、使用方法示例:\n python concurrent_ntlm_auth_requests.py -s 17:45:00 -r 2 -t 120 -p 172.17.33.23:8080') 
@@ -174,7 +187,12 @@ if __name__ == '__main__':
     parser.add_argument('-u','--is-same-url', type=bool, default=True,help='是否使用相同URL测试')
     parser.add_argument('-u1','--is-http', type=bool, default=True,help='当指定使用相同URL时，指定是http还是https请求')
     parser.add_argument('-f','--url-file', type=str, default='hwurls_top10w.txt',help='urls来源文件')
-    parser.add_argument('-f1','--url-index', type=int, default=0,help='urls来源文件中字段序号，从0开始')
+    parser.add_argument('-f1','--url-index', type=int, default=0,help='urls来源文件中字段序号，默认从0开始')
+    parser.add_argument('-a0','--start-user-index', type=int, default=0,help='auth 用户的序号，默认从0开始')
+    parser.add_argument('-a1','--user-num', type=int, default=1275,help='auth 用户数量')
+    parser.add_argument('-e0','--start-eth0-index', type=int, default=0,help='开始的子网卡序号，默认从0开始')
+    parser.add_argument('-e1','--sub-eth0-num', type=int, default=1275,help='子网卡接口数量，每个接口一个IP地址')
+    parser.add_argument('-d','--is-debug', type=bool, default=False,help='是否开启curl的打印日志')
     args = parser.parse_args()
     max_round = args.round
     first_schedule_time = args.starttime
@@ -197,21 +215,27 @@ if __name__ == '__main__':
     is_same_url = True
     url_file = args.url_file
     url_index = args.url_index
+    start_user_index = args.start_user_index
+    user_num = args.user_num
+    start_eth0_index = args.start_eth0_index
+    sub_eth0_num = args.sub_eth0_num
+    is_debug = args.is_debug
     urls = get_urls_from_file(from_file=url_file,url_index=url_index,spliter=',',pre_www='www.')
     #print('urls=',urls)
     #url = 'https://www.baidu.com'
     print('urls_len=',len(urls))
     
-    urls = urls[:300]
+    #urls = urls[:300]
     print('urls_len=',len(urls))
     #from zthreads.threadpools.threadpools import Threadpools
     #thread_pool = Threadpools(5)
     i = 0
-    user_start=301
-    user_num=253
-    sub_eth_start = 0
-    eth_num=253
-    cert='rootCA.cer'
+    #unique_users = 1275
+    user_start = start_user_index
+    user_num = user_num
+    sub_eth_start = start_eth0_index
+    eth_num  = sub_eth0_num
+    cert = 'rootCA.cer'
     is_http = True
     #first_schedule_time = "16:45:00"
     #auth_cache_timeout = 60
@@ -226,7 +250,7 @@ if __name__ == '__main__':
             print('This_schedule_time={0}, round={1}'.format(first_schedule_time,round_num))
             start_time =  time.time()
             urls_resquests(urls, proxy=proxy,user_start=user_start,user_num=user_num,sub_eth_start=sub_eth_start, eth_num=eth_num, 
-                ip_prefix=ip_prefix, cert=cert,is_same_url=is_same_url, is_http=is_http)
+                ip_prefix=ip_prefix, cert=cert,is_same_url=is_same_url, is_http=is_http,debug=is_debug)
             total_sending_time_seconds =  time.time() - start_time   
             print('total_sending_time_seconds={0}. Finished all url requests for round_{1}!!!'.format(total_sending_time_seconds,round_num))
             round_num = round_num + 1
@@ -241,7 +265,7 @@ if __name__ == '__main__':
                 #date_str = now.strftime("%Y-%m-%d ")
                 #last_schedule_time_str = date_str + first_schedule_time
                 last_schedule_time = datetime.datetime.strptime(now.strftime("%Y-%m-%d ") + first_schedule_time,'%Y-%m-%d %H:%M:%S')
-                nexttime = last_schedule_time + datetime.timedelta(seconds=auth_cache_timeout+30) # delay 30 seconds
+                nexttime = last_schedule_time + datetime.timedelta(seconds=auth_cache_timeout+60) # delay 60 seconds
                 first_schedule_time = nexttime.strftime("%H:%M:%S")
                 print('Next_schedule_time={0}...'.format(first_schedule_time))
             #time.sleep(sleep_time)
